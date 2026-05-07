@@ -5,16 +5,14 @@ import uuid
 app = FastAPI()
 TRIGGER = "!ia"
 
-# Movemos a rota do UptimeRobot para /status
 @app.get("/status")
 def read_root():
     return {"status": "Servidor da IA do Minecraft Online e Rodando!"}
 
-# Colocamos o WebSocket na raiz (/) para o Minecraft achar direto
 @app.websocket("/")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    print("Minecraft conectado!")
+    print("Minecraft bateu na porta! Conexão aceita.")
     
     subscribe_msg = {
         "header": {
@@ -26,10 +24,20 @@ async def websocket_endpoint(websocket: WebSocket):
         "body": {"eventName": "PlayerMessage"}
     }
     await websocket.send_json(subscribe_msg)
+    print("Pedido de inscrição no chat enviado ao jogo.")
     
     try:
         while True:
-            data = await websocket.receive_json()
+            # Lemos como texto primeiro para evitar que o servidor quebre
+            raw_data = await websocket.receive_text()
+            print(f"Recebido do jogo: {raw_data}") # Isso vai aparecer no log do Render!
+            
+            # Tentamos converter para JSON de forma segura
+            try:
+                data = json.loads(raw_data)
+            except Exception as e:
+                print("Aviso: O jogo mandou algo que não é JSON puro. Ignorando...")
+                continue
             
             if "body" in data and "message" in data["body"]:
                 texto = data["body"]["message"]
@@ -37,8 +45,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 if texto.startswith(TRIGGER):
                     pergunta = texto.replace(TRIGGER, "").strip()
-                    
-                    # Lógica da sua IA aqui
                     resposta_ia = f"Ola {autor}! Entendi que voce quer saber sobre: {pergunta}"
                     
                     response_cmd = {
@@ -56,4 +62,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_json(response_cmd)
                     
     except WebSocketDisconnect:
-        print("Minecraft desconectado")
+        print("Minecraft desconectou normalmente.")
+    except Exception as e:
+        print(f"Erro inesperado que derrubou a conexão: {e}")
