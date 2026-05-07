@@ -2,23 +2,24 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 app = FastAPI()
 
-@app.get("/")
-def read_root():
+# Rota HTTP isolada para o UptimeRobot não deixar o servidor dormir
+@app.get("/status")
+def read_status():
     return {"status": "Servidor Online!"}
 
-@app.websocket("/")
+# Rota WebSocket isolada APENAS para o Minecraft
+@app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # Apenas aceita a conexão, sem enviar o pedido de "subscribe" ainda
+    # O Bedrock às vezes exige o protocolo dele, mas vamos tentar aceitar tudo primeiro
     await websocket.accept()
     print(">>> MINECRAFT CONECTOU COM SUCESSO! <<<")
     
     try:
         while True:
-            # Fica aguardando qualquer sinal de vida do jogo
             data = await websocket.receive_text()
             print(f"O jogo enviou: {data}")
             
     except WebSocketDisconnect as e:
-        print(f">>> O JOGO DESCONECTOU! Código do erro: {e.code} <<<")
+        print(f">>> O JOGO DESCONECTOU! Código: {e.code} <<<")
     except Exception as e:
         print(f">>> ERRO NO PYTHON: {e} <<<")
