@@ -5,13 +5,13 @@ import uuid
 app = FastAPI()
 TRIGGER = "!ia"
 
-# Rota HTTP para o UptimeRobot manter o servidor vivo
-@app.get("/")
+# Movemos a rota do UptimeRobot para /status
+@app.get("/status")
 def read_root():
     return {"status": "Servidor da IA do Minecraft Online e Rodando!"}
 
-# Rota WebSocket para o Minecraft se conectar
-@app.websocket("/ws")
+# Colocamos o WebSocket na raiz (/) para o Minecraft achar direto
+@app.websocket("/")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     print("Minecraft conectado!")
@@ -38,7 +38,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 if texto.startswith(TRIGGER):
                     pergunta = texto.replace(TRIGGER, "").strip()
                     
-                    # Aqui entra a lógica da sua API (Gemini/Groq)
+                    # Lógica da sua IA aqui
                     resposta_ia = f"Ola {autor}! Entendi que voce quer saber sobre: {pergunta}"
                     
                     response_cmd = {
@@ -49,7 +49,6 @@ async def websocket_endpoint(websocket: WebSocket):
                             "messagePurpose": "commandRequest"
                         },
                         "body": {
-                            # Usamos tellraw para ficar formatado bonitinho no chat
                             "commandLine": f"tellraw @a {{\"rawtext\":[{{\"text\":\"§b[IA] §f{resposta_ia}\"}}]}}",
                             "version": 1
                         }
